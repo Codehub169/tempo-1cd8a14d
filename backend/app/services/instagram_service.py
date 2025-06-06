@@ -18,7 +18,8 @@ async def fetch_reel_info(url: str) -> Dict[str, Any]:
         'skip_download': True,
         'forcejson': True,
         'extract_flat': 'discard_in_playlist',
-        'proxy': "" # Explicitly disable proxy
+        'proxy': "", # Explicitly disable proxy
+        'ignoreconfig': True # Ignore yt-dlp configuration files
     }
     info = await _extract_yt_dlp_info(url, ydl_opts)
 
@@ -41,15 +42,18 @@ async def fetch_reel_info(url: str) -> Dict[str, Any]:
     file_extension = info.get('ext', 'mp4')
     file_size_bytes = info.get('filesize') or info.get('filesize_approx')
 
+    # Prioritize direct URL from info if available and protocol is standard
     if info.get('url') and info.get('protocol') in ['http', 'https', 'm3u8_native', 'm3u8', 'rtmp']:
         direct_video_url = info.get('url')
+    # Fallback to checking formats for a suitable mp4 video stream
     elif info.get('formats'):
         for f in info['formats']:
+            # Look for an mp4 format with video codec
             if f.get('vcodec') != 'none' and f.get('ext') == 'mp4':
                 direct_video_url = f.get('url')
-                file_extension = f.get('ext', file_extension)
-                file_size_bytes = f.get('filesize') or f.get('filesize_approx') or file_size_bytes
-                break 
+                file_extension = f.get('ext', file_extension) # Update ext if found in format
+                file_size_bytes = f.get('filesize') or f.get('filesize_approx') or file_size_bytes # Update size
+                break # Take the first suitable mp4 format
 
     return {
         'id': info.get('id'),
@@ -68,9 +72,11 @@ async def fetch_reel_info(url: str) -> Dict[str, Any]:
         'filesize_str': _format_filesize(file_size_bytes) if file_size_bytes is not None else "N/A"
     }
 
-async def download_reel(url: str, filename_prefix: str) -> Tuple[str, str, str]:
+async def download_reel(url: str, client_filename: str) -> Tuple[str, str, str]:
     temp_dir = tempfile.mkdtemp(prefix='reelgrab_')
     
+    # Using client_filename for logging clarity, but yt-dlp uses its own template for disk file names.
+    # The router will use client_filename for the FileResponse 'filename' parameter.
     output_template = os.path.join(temp_dir, '%(uploader_id)s_%(id)s.%(ext)s')
 
     ydl_opts = {
@@ -81,7 +87,8 @@ async def download_reel(url: str, filename_prefix: str) -> Tuple[str, str, str]:
         'skip_download': False,
         'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/bestvideo+bestaudio/best',
         'extract_flat': 'discard_in_playlist',
-        'proxy': "" # Explicitly disable proxy
+        'proxy': "", # Explicitly disable proxy
+        'ignoreconfig': True # Ignore yt-dlp configuration files
     }
 
     try:
@@ -103,7 +110,7 @@ async def download_reel(url: str, filename_prefix: str) -> Tuple[str, str, str]:
              raise FileNotFoundError(f"Downloaded Reel file path could not be determined or does not exist: {downloaded_file_path} for URL: {url}")
 
         actual_filename_on_disk = os.path.basename(downloaded_file_path)
-        logger.info(f"Instagram Reel downloaded to: {downloaded_file_path} (Disk filename: {actual_filename_on_disk}) for URL: {url}")
+        logger.info(f"Instagram Reel downloaded to: {downloaded_file_path} (Disk filename: {actual_filename_on_disk}, Client filename hint: {client_filename}) for URL: {url}")
         
         return temp_dir, downloaded_file_path, actual_filename_on_disk
 

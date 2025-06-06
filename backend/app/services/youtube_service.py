@@ -32,7 +32,7 @@ def _format_filesize(size_bytes: Optional[int]) -> str:
         return f"{size_bytes} B"
     i = int(math.floor(math.log(size_bytes, 1024)))
     # Ensure 'i' is within the bounds of size_name tuple
-    i = max(0, min(i, len(size_name) - 1)) 
+    i = max(0, min(i, len(size_name) - 1))
     p = math.pow(1024, i)
     s = round(size_bytes / p, 2)
     return f"{s} {size_name[i]}"
@@ -103,7 +103,8 @@ async def fetch_video_info(url: str) -> Dict[str, Any]:
         'forcejson': True,
         'youtube_include_dash_manifest': False,
         'extract_flat': 'discard_in_playlist',
-        'proxy': "" # Explicitly disable proxy for yt-dlp
+        'proxy': "", # Explicitly disable proxy for yt-dlp
+        'ignoreconfig': True # Ignore yt-dlp configuration files
     }
     info = await _extract_yt_dlp_info(url, ydl_opts)
 
@@ -120,7 +121,7 @@ async def fetch_video_info(url: str) -> Dict[str, Any]:
                 'ext': f.get('ext'),
                 'filesize': filesize,
                 'filesize_str': filesize_str,
-                'note': f.get('format_note', 
+                'note': f.get('format_note'), 
             }
 
             # Video formats (must have both video and audio, or be a common video container)
@@ -178,7 +179,8 @@ async def download_media(url: str, format_id: str, media_type: str, client_filen
         'no_warnings': True,
         'skip_download': False, # False means do download the file
         'extract_flat': 'discard_in_playlist',
-        'proxy': "" # Explicitly disable proxy for yt-dlp
+        'proxy': "", # Explicitly disable proxy for yt-dlp
+        'ignoreconfig': True # Ignore yt-dlp configuration files
     }
 
     try:
