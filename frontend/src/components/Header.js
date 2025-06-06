@@ -33,26 +33,26 @@ const Header = ({ pageTitleMain, pageTitleHighlight, pageSubtitle, theme, toggle
           <h1 className="font-secondary text-3xl md:text-4xl font-bold mb-1">
             {pageTitleMain}<span className={titleHighlightClass}>{pageTitleHighlight}</span>
           </h1>
-          <p className="subtitle text-sm md:text-base text-text-secondary">
+          <p className="subtitle text-sm md:text-base text-light-text-secondary dark:text-dark-text-secondary">
             {pageSubtitle}
           </p>
         </div>
         <button 
           onClick={toggleTheme} 
-          className="theme-switcher bg-theme-switcher text-text-primary border border-border rounded-full w-10 h-10 flex items-center justify-center text-xl hover:bg-theme-switcher-hover transition-colors duration-200 flex-shrink-0"
+          className="theme-switcher bg-light-theme-switcher-bg dark:bg-dark-theme-switcher-bg text-light-text-primary dark:text-dark-text-primary border border-light-border dark:border-dark-border rounded-full w-10 h-10 flex items-center justify-center text-xl hover:bg-light-theme-switcher-hover-bg dark:hover:bg-dark-theme-switcher-hover-bg transition-colors duration-200 flex-shrink-0"
           aria-label="Toggle theme"
         >
           {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
         </button>
       </div>
-      <nav className="main-navigation flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-3 p-2 bg-card sm:bg-transparent rounded-lg sm:rounded-none shadow-sm sm:shadow-none">
+      <nav className="main-navigation flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-3 p-2 bg-light-card dark:bg-dark-card sm:bg-transparent rounded-lg sm:rounded-none shadow-sm sm:shadow-none">
         <NavLink 
           to="/" 
           className={({ isActive }) => 
             `nav-link py-2 px-4 rounded-md font-medium text-sm transition-colors duration-200 w-full sm:w-auto text-center 
             ${isActive 
               ? 'bg-nav-link-active text-nav-link-active-color border border-nav-link-active'
-              : 'bg-nav-link text-text-primary hover:bg-nav-link-hover border border-border'}`
+              : 'bg-light-nav-link-bg dark:bg-dark-nav-link-bg text-light-text-primary dark:text-dark-text-primary hover:bg-light-nav-link-bg-hover dark:hover:bg-dark-nav-link-bg-hover border border-light-border dark:border-dark-border'}`
           }
         >
           YouTube Downloader
@@ -63,7 +63,7 @@ const Header = ({ pageTitleMain, pageTitleHighlight, pageSubtitle, theme, toggle
             `nav-link py-2 px-4 rounded-md font-medium text-sm transition-colors duration-200 w-full sm:w-auto text-center 
             ${isActive 
               ? 'bg-nav-link-active text-nav-link-active-color border border-nav-link-active'
-              : 'bg-nav-link text-text-primary hover:bg-nav-link-hover border border-border'}`
+              : 'bg-light-nav-link-bg dark:bg-dark-nav-link-bg text-light-text-primary dark:text-dark-text-primary hover:bg-light-nav-link-bg-hover dark:hover:bg-dark-nav-link-bg-hover border border-light-border dark:border-dark-border'}`
           }
         >
           Instagram Reels

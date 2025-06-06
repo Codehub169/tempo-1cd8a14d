@@ -1,16 +1,15 @@
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
-from starlette.background import BackgroundTask # Corrected import
+from starlette.background import BackgroundTask
 import os
 import logging
-import shutil # Added import
+import shutil
+from typing import Optional
 
 from ..services import youtube_service, instagram_service
-from ..models import YouTubeVideoInfo, InstagramReelInfo # Added response_model imports
+from ..models import YouTubeVideoInfo, InstagramReelInfo
 
 router = APIRouter()
-
-# logging.basicConfig(level=logging.INFO) # Removed: configure logging at application level
 logger = logging.getLogger(__name__)
 
 @router.get("/youtube/info", tags=["YouTube"], response_model=YouTubeVideoInfo)
@@ -19,7 +18,7 @@ async def get_youtube_info_route(url: str = Query(..., description="The YouTube 
     try:
         logger.info(f"Fetching YouTube info for URL: {url}")
         info = await youtube_service.fetch_video_info(url)
-        if not info or not info.get('id'): # Check if essential info like 'id' is present
+        if not info or not info.get('id'):
             raise HTTPException(status_code=404, detail="Video information not found or could not be processed.")
         return info
     except ValueError as ve:
@@ -46,7 +45,7 @@ async def download_youtube_media_route(
             path=file_path,
             filename=filename, 
             media_type='application/octet-stream',
-            background=BackgroundTask(shutil.rmtree, temp_dir, ignore_errors=True) # Cleanup directory
+            background=BackgroundTask(shutil.rmtree, temp_dir, ignore_errors=True)
         )
     except ValueError as ve:
         logger.error(f"Validation error downloading YouTube media for {url}, format {format_id}: {str(ve)}")
@@ -71,7 +70,7 @@ async def get_instagram_info_route(url: str = Query(..., description="The Instag
     try:
         logger.info(f"Fetching Instagram info for URL: {url}")
         info = await instagram_service.fetch_reel_info(url)
-        if not info or not info.get('id'): # Check if essential info like 'id' is present
+        if not info or not info.get('id'):
             raise HTTPException(status_code=404, detail="Reel information not found or could not be processed.")
         return info
     except ValueError as ve:
@@ -84,19 +83,34 @@ async def get_instagram_info_route(url: str = Query(..., description="The Instag
 @router.get("/instagram/download", tags=["Instagram"])
 async def download_instagram_reel_route(
     url: str = Query(..., description="The Instagram Reel URL"), 
-    filename: str = Query(..., description="Desired filename for the download")
+    filename: Optional[str] = Query(None, description="Desired filename for the download. Defaults if not provided.")
 ):
     """Downloads an Instagram Reel."""
     temp_dir = None
+    DEFAULT_INSTAGRAM_FILENAME = "instagram_reel_default.mp4"
+    effective_filename: str
+
+    if filename and filename.strip():
+        effective_filename = filename.strip()
+        # Basic check for potentially problematic characters. This is not exhaustive.
+        # The primary goal is to provide a reasonable filename for the Content-Disposition header.
+        # Avoid characters like / \ and null bytes. Others might be relevant depending on OS.
+        if '/' in effective_filename or '\\' in effective_filename or '\0' in effective_filename:
+            logger.warning(f"Provided filename '{effective_filename}' contains problematic characters. Using default.")
+            effective_filename = DEFAULT_INSTAGRAM_FILENAME
+    else:
+        effective_filename = DEFAULT_INSTAGRAM_FILENAME
+        logger.warning(f"Filename not provided or invalid for Instagram Reel download (URL: {url}). Using default: {effective_filename}")
+        
     try:
-        logger.info(f"Instagram Reel download request: URL={url}, Filename={filename}")
-        temp_dir, file_path, _ = await instagram_service.download_reel(url, filename)
+        logger.info(f"Instagram Reel download request: URL={url}, Effective Filename={effective_filename}")
+        temp_dir, file_path, _ = await instagram_service.download_reel(url, effective_filename)
         
         return FileResponse(
             path=file_path, 
-            filename=filename, 
+            filename=effective_filename, 
             media_type='video/mp4',
-            background=BackgroundTask(shutil.rmtree, temp_dir, ignore_errors=True) # Cleanup directory
+            background=BackgroundTask(shutil.rmtree, temp_dir, ignore_errors=True)
         )
     except ValueError as ve:
         logger.error(f"Validation error downloading Instagram Reel for {url}: {str(ve)}")
