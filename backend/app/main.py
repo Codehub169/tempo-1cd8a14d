@@ -1,8 +1,28 @@
+import os
+import logging # For potential logging
+
+# --- BEGIN PROXY CLEAR ---
+# Define a list of proxy environment variables to clear
+PROXY_ENV_VARS_TO_CLEAR = [
+    'HTTP_PROXY', 'HTTPS_PROXY', 'FTP_PROXY', 'SOCKS_PROXY', 'ALL_PROXY', 'NO_PROXY',
+    'http_proxy', 'https_proxy', 'ftp_proxy', 'socks_proxy', 'all_proxy', 'no_proxy'
+]
+
+_main_logger_for_proxy_clear = logging.getLogger(__name__) # Use a logger consistent with the file
+
+# Attempt to clear them from the environment at application startup
+# This is an additional safeguard. youtube_service also clears these around yt-dlp calls.
+for var_name in PROXY_ENV_VARS_TO_CLEAR:
+    if var_name in os.environ:
+        original_value = os.environ.pop(var_name, None) # Pop to remove and get value
+        _main_logger_for_proxy_clear.info(f"Cleared environment variable at startup: {var_name} (was: {original_value})")
+# --- END PROXY CLEAR ---
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
-import logging
+# import logging # logging is already imported above
 
 from .routers import download
 
