@@ -12,9 +12,16 @@ module.exports = {
         'primary-accent': '#007BFF',
         'primary-accent-hover': '#0056b3',
         'success': '#28A745',
+        'success-hover': '#218838', // Added
         'warning': '#FFC107',
         'error': '#DC3545',
-        // Dark Mode Palette (matches CSS variables in provided HTML)
+        
+        // Instagram Gradient Colors - Added
+        'instagram-pink': '#d62976',
+        'instagram-purple': '#962fbf',
+        'instagram-yellow': '#feda75', 
+
+        // Dark Mode Palette
         'dark-bg': '#1A1A1A',
         'dark-card': '#282828',
         'dark-border': '#444444',
@@ -27,19 +34,25 @@ module.exports = {
         'dark-nav-link-bg-hover': '#383838',
         'dark-theme-switcher-bg': '#333333',
         'dark-theme-switcher-hover-bg': '#444444',
-        // Light Mode Palette (matches CSS variables in provided HTML)
+        
+        // Light Mode Palette
         'light-bg': '#F8F9FA',
         'light-card': '#FFFFFF',
-        'light-border': '#DEE2E6', // Corrected from plan's CED4DA to match HTML example's --color-border for light
+        'light-border': '#DEE2E6',
         'light-text-primary': '#212529',
         'light-text-secondary': '#6C757D',
-        'light-input-bg': '#FFFFFF', // Matches HTML example's --color-input-bg for light
+        'light-input-bg': '#FFFFFF',
         'light-input-border': '#CED4DA',
         'light-btn-disabled-bg': '#ced4da',
         'light-nav-link-bg': '#e9ecef',
         'light-nav-link-bg-hover': '#d3d9df',
         'light-theme-switcher-bg': '#e9ecef',
         'light-theme-switcher-hover-bg': '#dee2e6',
+
+        // Active Navigation Link Styles - Added
+        'nav-link-active': '#007BFF', // Using primary-accent value
+        'nav-link-active-color': '#FFFFFF', // White text on primary-accent background
+        'border-nav-link-active': '#0056b3', // Using primary-accent-hover for border
       },
       fontFamily: {
         primary: ['Inter', 'sans-serif'],

@@ -3,11 +3,10 @@ import asyncio
 import os
 import tempfile
 import logging
-from typing import Dict, Any, Tuple
-import shutil # For robust directory cleanup
+from typing import Dict, Any, Tuple, Optional
+import shutil
 
-# Reusing BackgroundTask and _extract_yt_dlp_info from youtube_service
-from .youtube_service import BackgroundTask, _extract_yt_dlp_info 
+from .youtube_service import _extract_yt_dlp_info # Reusing helper from youtube_service
 
 logger = logging.getLogger(__name__)
 
@@ -18,54 +17,43 @@ async def fetch_reel_info(url: str) -> Dict[str, Any]:
         'no_warnings': True,
         'skip_download': True,
         'forcejson': True,
-        # Consider adding cookiefile option for broader Instagram support if needed:
-        # 'cookiefile': 'path/to/instagram_cookies.txt',
     }
     info = await _extract_yt_dlp_info(url, ydl_opts)
 
-    # Map yt-dlp fields to what the frontend expects (uploader, caption, previewImageUrl, id, originalUrl)
-    # Instagram Reels might not have a distinct 'title'; 'description' is often the caption.
-    caption = info.get('description') or info.get('title') or "No caption available"
+    full_description = info.get('description') or info.get('title')
     
-    # Truncate caption if it's too long for preview
     max_caption_length = 150 
-    if caption and len(caption) > max_caption_length:
-        caption = caption[:max_caption_length] + "..."
+    display_caption = full_description
+    if full_description and len(full_description) > max_caption_length:
+        display_caption = full_description[:max_caption_length].rsplit(' ', 1)[0] + "..." 
 
     return {
         'id': info.get('id'),
-        'uploader': info.get('uploader', 'N/A'),
-        'caption': caption,
-        'previewImageUrl': info.get('thumbnail'),
+        'uploader': info.get('uploader'),
+        'uploader_id': info.get('uploader_id'),
+        'title': info.get('title') or full_description, # Full title or description
+        'description': full_description, # Full description from yt-dlp
+        'caption': display_caption or "No caption available", # Shortened for display
+        'thumbnail': info.get('thumbnail'),
+        'preview_image_url': info.get('thumbnail'), # Alias for frontend consistency
         'duration': info.get('duration'),
-        'duration_string': info.get('duration_string'),
         'upload_date': info.get('upload_date'), # YYYYMMDD
-        'originalUrl': info.get('webpage_url', url), # Webpage URL or the input URL
-        # It's useful to also send the direct video URL if yt-dlp found one, for potential direct linking or alternative download methods
-        'direct_video_url': info.get('url') if info.get('ext') == 'mp4' else None, 
+        'original_url': info.get('webpage_url', url), # Correctly mapped originalUrl
+        'direct_video_url': info.get('url') if info.get('ext') == 'mp4' else None,
     }
 
-async def download_reel(url: str, filename_prefix: str) -> Tuple[str, str]:
+async def download_reel(url: str, filename_prefix: str) -> Tuple[str, str, str]:
     temp_dir = tempfile.mkdtemp(prefix='reelgrab_')
     
-    # Instagram Reels are typically MP4. yt-dlp will handle choosing the best format.
-    # We'll use filename_prefix for the browser suggestion, yt-dlp determines actual disk name.
-    output_template = os.path.join(temp_dir, '%(title)s.%(ext)s') # Default title.mp4 or similar
-    if filename_prefix:
-        # A more controlled output name if desired, but ensure extension is handled by yt-dlp
-        # For simplicity, stick to yt-dlp's default title-based naming within temp_dir.
-        # The router will use `filename_prefix` for the `FileResponse`'s `filename` argument.
-        pass 
+    output_template = os.path.join(temp_dir, '%(uploader)s_%(id)s.%(ext)s') # More specific naming
 
     ydl_opts = {
         'outtmpl': output_template,
         'noplaylist': True,
         'quiet': True,
         'no_warnings': True,
-        'skip_download': False, # Ensure download happens
-        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best', # Prefer MP4 for Reels
-        # 'cookiefile': 'path/to/instagram_cookies.txt', # If needed
-        # 'verbose': True,
+        'skip_download': False,
+        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best', # Prefer MP4
     }
 
     try:
@@ -80,7 +68,7 @@ async def download_reel(url: str, filename_prefix: str) -> Tuple[str, str]:
             files_in_temp = [os.path.join(temp_dir, f) for f in os.listdir(temp_dir) if os.path.isfile(os.path.join(temp_dir, f))]
             if not files_in_temp:
                 raise FileNotFoundError(f"yt-dlp finished but no file was found in the temp directory for Reel: {temp_dir}")
-            downloaded_file_path = max(files_in_temp, key=os.path.getctime)
+            downloaded_file_path = max(files_in_temp, key=os.path.getmtime)
             logger.info(f"Fallback found downloaded Reel file: {downloaded_file_path}")
 
         if not downloaded_file_path or not os.path.exists(downloaded_file_path):
@@ -89,7 +77,7 @@ async def download_reel(url: str, filename_prefix: str) -> Tuple[str, str]:
         actual_filename_on_disk = os.path.basename(downloaded_file_path)
         logger.info(f"Instagram Reel downloaded to: {downloaded_file_path} (Disk filename: {actual_filename_on_disk})")
         
-        return downloaded_file_path, actual_filename_on_disk
+        return temp_dir, downloaded_file_path, actual_filename_on_disk
 
     except (ValueError, FileNotFoundError) as e: 
         logger.error(f"Error during Reel download preparation for {url}: {str(e)}")

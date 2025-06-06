@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import UrlForm from '../components/UrlForm';
-// import YouTubeResults from '../components/YouTubeResults'; // Will be used later
+// import YouTubeResults from '../components/YouTubeResults'; // Will be used later if direct rendering is removed
 // import { fetchYouTubeInfo } from '../services/api'; // Will be used later
 
 const YouTubePage = ({ theme, toggleTheme }) => {
@@ -26,7 +26,9 @@ const YouTubePage = ({ theme, toggleTheme }) => {
       setVideoInfo(null);
       return;
     }
-    if (!youtubeUrl.includes('youtube.com/watch?v=') && !youtubeUrl.includes('youtu.be/')) {
+    // Basic regex for YouTube video URL validation (watch, short, embed, channel video)
+    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11}).*/;
+    if (!youtubeRegex.test(youtubeUrl)) {
       setError('Invalid YouTube URL format. Please use a valid video link.');
       setVideoInfo(null);
       return;
@@ -45,22 +47,25 @@ const YouTubePage = ({ theme, toggleTheme }) => {
         const mockData = {
           title: youtubeUrl.includes('dQw4w9WgXcQ') ? "Rick Astley - Never Gonna Give You Up" : "Epic Nature Documentary - 4K Film",
           channel: youtubeUrl.includes('dQw4w9WgXcQ') ? "Rick Astley" : "Nature Wonders HD",
-          duration: youtubeUrl.includes('dQw4w9WgXcQ') ? "03:32" : "47:12",
+          duration_string: youtubeUrl.includes('dQw4w9WgXcQ') ? "03:32" : "47:12",
           thumbnailUrl: youtubeUrl.includes('dQw4w9WgXcQ') ? "https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg" : "https://images.unsplash.com/photo-1500964757637-c85e8a162699?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bmF0dXJlJTIwbGFuZHNjYXBlfGVufDB8fDB8fHww&auto=format&fit=crop&w=160&h=90",
-          videoFormats: [
-            { quality: "MP4 2160p (4K)", size: "1.2 GB", type: "video", id: "v1" },
-            { quality: "MP4 1080p (HD)", size: "450 MB", type: "video", id: "v2" },
+          original_url: youtubeUrl,
+          video_formats: [
+            { format_id: "v_4k_mp4", resolution: "3840x2160", filesize_str: "1.2 GB", ext: "mp4", note: "4K MP4" },
+            { format_id: "v_1080p_mp4", resolution: "1920x1080", filesize_str: "450 MB", ext: "mp4", note: "1080p MP4" },
+            { format_id: "v_720p_webm", resolution: "1280x720", filesize_str: "250 MB", ext: "webm", note: "720p WebM" },
           ],
-          audioFormats: [
-            { quality: "MP3 320kbps", size: "45 MB", type: "audio", id: "a1" },
-            { quality: "M4A 128kbps", size: "18 MB", type: "audio", id: "a2" },
+          audio_formats: [
+            { format_id: "a_opus_160", note: "Opus @ ~160K (best)", filesize_str: "3.5 MB", ext: "opus", abr: 160 },
+            { format_id: "a_m4a_128", note: "M4A @ ~128K", filesize_str: "3.2 MB", ext: "m4a", abr: 128 },
+            { format_id: "a_mp3_128", note: "MP3 @ 128K (fallback)", filesize_str: "3.2 MB", ext: "mp3", abr: 128 },
           ]
         };
         setVideoInfo(mockData);
         setError(null);
       }
       setIsLoading(false);
-    }, 2500);
+    }, 1500);
   };
 
   const DownloadIcon = () => (
@@ -86,7 +91,6 @@ const YouTubePage = ({ theme, toggleTheme }) => {
     </svg>
   );
 
-  // Placeholder for status message, ideally handled globally
   const [statusMessage, setStatusMessage] = useState({ text: '', type: '' });
   useEffect(() => {
     if (statusMessage.text) {
@@ -96,13 +100,18 @@ const YouTubePage = ({ theme, toggleTheme }) => {
   }, [statusMessage]);
 
   const handleDownloadClick = (format) => {
-    setStatusMessage({ text: `Simulating download for ${format.type}: ${format.quality}...`, type: 'success' });
-    // Actual download logic would be here, e.g., calling an API endpoint
-    // window.location.href = `/api/download?url=${youtubeUrl}&formatId=${format.id}`;
+    // This is a mock download click handler for demonstration when not using the full API flow
+    // In a real scenario, this would call an API service like `downloadYouTubeMedia`
+    const downloadType = format.abr ? 'audio' : 'video'; // Infer type for message
+    const qualityDesc = format.resolution || format.note || `${format.ext.toUpperCase()} format`;
+    setStatusMessage({ text: `Simulating download for ${downloadType}: ${qualityDesc}...`, type: 'success' });
+    console.log("Simulating download for format:", format, "Original URL:", videoInfo.original_url);
+    // Actual download logic would be: 
+    // onDownload(videoInfo.original_url, format.format_id, downloadType, `${videoInfo.title}.${format.ext}`);
   };
 
   return (
-    <div className="container mx-auto px-4 min-h-screen flex flex-col items-center text-text-primary">
+    <div className="container mx-auto px-4 min-h-screen flex flex-col items-center text-light-text-primary dark:text-dark-text-primary">
       <Header 
         pageTitleMain="Tube" 
         pageTitleHighlight="Fetch" 
@@ -111,13 +120,13 @@ const YouTubePage = ({ theme, toggleTheme }) => {
         toggleTheme={toggleTheme} 
       />
       <main className="w-full max-w-3xl">
-        <section id="downloaderSection" className="bg-card p-6 md:p-8 rounded-lg shadow-lg mb-8">
+        <section id="downloaderSection" className="bg-light-card dark:bg-dark-card p-6 md:p-8 rounded-lg shadow-lg mb-8">
           <UrlForm 
             url={youtubeUrl} 
             setUrl={setYoutubeUrl} 
             handleSubmit={handleFetchYouTubeInfo} 
             placeholder="Paste YouTube video URL here (e.g., https://www.youtube.com/watch?v=dQw4w9WgXcQ)" 
-            buttonText="Fetch" 
+            buttonText="Fetch Info" 
             isLoading={isLoading} 
             buttonIconSvg={<DownloadIcon />}
           />
@@ -125,48 +134,50 @@ const YouTubePage = ({ theme, toggleTheme }) => {
 
         {isLoading && (
           <section id="loadingSection" className="my-8">
-            <div className="bg-card p-8 rounded-lg shadow-md flex flex-col items-center gap-4">
-              <div className="w-12 h-12 border-4 border-border border-t-primary-accent rounded-full animate-spin"></div>
-              <p className="text-text-secondary">Processing your link... Please wait.</p>
+            <div className="bg-light-card dark:bg-dark-card p-8 rounded-lg shadow-md flex flex-col items-center gap-4">
+              <div className="w-12 h-12 border-4 border-light-border dark:border-dark-border border-t-primary-accent rounded-full animate-spin"></div>
+              <p className="text-light-text-secondary dark:text-dark-text-secondary">Processing your link... Please wait.</p>
             </div>
           </section>
         )}
 
         {error && (
-          <section id="errorSection" className="my-8 bg-card p-6 rounded-lg border border-error text-error text-center shadow-md">
+          <section id="errorSection" className="my-8 bg-light-card dark:bg-dark-card p-6 rounded-lg border border-error text-error text-center shadow-md">
             <p className="font-medium">{error}</p>
           </section>
         )}
 
         {videoInfo && !isLoading && (
           <section id="resultsSection" className="my-8 animate-fadeIn">
-            <div className="video-info bg-card p-6 rounded-lg shadow-md mb-8 flex flex-col sm:flex-row items-center sm:items-start gap-6">
-              <div className="video-thumbnail w-full sm:w-40 h-auto sm:h-[90px] bg-input-bg rounded-lg overflow-hidden flex-shrink-0">
+            <div className="video-info bg-light-card dark:bg-dark-card p-6 rounded-lg shadow-md mb-8 flex flex-col sm:flex-row items-center sm:items-start gap-6">
+              <div className="video-thumbnail w-full sm:w-40 h-auto sm:h-[90px] bg-light-input-bg dark:bg-dark-input-bg rounded-lg overflow-hidden flex-shrink-0">
                 {videoInfo.thumbnailUrl ? 
                   <img src={videoInfo.thumbnailUrl} alt="Video Thumbnail" className="w-full h-full object-cover" /> :
-                  <span className="flex items-center justify-center h-full text-text-secondary text-sm">Thumbnail</span>
+                  <span className="flex items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary text-sm">Thumbnail</span>
                 }
               </div>
               <div className="video-details text-center sm:text-left">
-                <h3 className="text-xl font-semibold mb-1 text-text-primary">{videoInfo.title}</h3>
-                <p className="text-sm text-text-secondary">Channel: {videoInfo.channel}</p>
-                <p className="text-sm text-text-secondary">Duration: {videoInfo.duration}</p>
+                <h3 className="text-xl font-semibold mb-1 text-light-text-primary dark:text-dark-text-primary">{videoInfo.title}</h3>
+                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Channel: {videoInfo.channel}</p>
+                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Duration: {videoInfo.duration_string}</p>
               </div>
             </div>
 
             <div className="formats-container grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="format-group bg-card p-6 rounded-lg shadow-md">
-                <h4 className="text-lg font-semibold mb-4 pb-2 border-b border-border text-text-primary"><VideoIcon />Video Formats</h4>
+              <div className="format-group bg-light-card dark:bg-dark-card p-6 rounded-lg shadow-md">
+                <h4 className="text-lg font-semibold mb-4 pb-2 border-b border-light-border dark:border-dark-border text-light-text-primary dark:text-dark-text-primary flex items-center"><VideoIcon />Video Formats</h4>
                 <ul className="space-y-3">
-                  {videoInfo.videoFormats.map((format) => (
-                    <li key={format.id} className="format-item flex flex-col sm:flex-row justify-between items-center py-3 border-b border-border last:border-b-0">
+                  {videoInfo.video_formats.map((format) => (
+                    <li key={format.format_id} className="format-item flex flex-col sm:flex-row justify-between items-start sm:items-center py-3 border-b border-light-border dark:border-dark-border last:border-b-0">
                       <div className="format-info text-sm mb-2 sm:mb-0">
-                        <span className="quality font-medium text-text-primary block sm:inline">{format.quality}</span>
-                        <span className="size text-xs text-text-secondary ml-0 sm:ml-2 block sm:inline">(Approx. {format.size})</span>
+                        <span className="quality font-medium text-light-text-primary dark:text-dark-text-primary block sm:inline">{format.resolution || format.note}</span>
+                        {format.filesize_str && 
+                          <span className="size text-xs text-light-text-secondary dark:text-dark-text-secondary ml-0 sm:ml-2 block sm:inline">(Approx. {format.filesize_str})</span>
+                        }
                       </div>
                       <button 
                         onClick={() => handleDownloadClick(format)}
-                        className="btn-download bg-success text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-success-hover transition-colors duration-200 flex items-center gap-2 w-full sm:w-auto justify-center">
+                        className="btn-download bg-success text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-success-hover transition-colors duration-200 flex items-center justify-center gap-2 w-full sm:w-auto">
                         <DownloadIcon /> Download
                       </button>
                     </li>
@@ -174,18 +185,20 @@ const YouTubePage = ({ theme, toggleTheme }) => {
                 </ul>
               </div>
 
-              <div className="format-group bg-card p-6 rounded-lg shadow-md">
-                <h4 className="text-lg font-semibold mb-4 pb-2 border-b border-border text-text-primary"><AudioIcon />Audio Formats</h4>
+              <div className="format-group bg-light-card dark:bg-dark-card p-6 rounded-lg shadow-md">
+                <h4 className="text-lg font-semibold mb-4 pb-2 border-b border-light-border dark:border-dark-border text-light-text-primary dark:text-dark-text-primary flex items-center"><AudioIcon />Audio Formats</h4>
                 <ul className="space-y-3">
-                  {videoInfo.audioFormats.map((format) => (
-                    <li key={format.id} className="format-item flex flex-col sm:flex-row justify-between items-center py-3 border-b border-border last:border-b-0">
+                  {videoInfo.audio_formats.map((format) => (
+                    <li key={format.format_id} className="format-item flex flex-col sm:flex-row justify-between items-start sm:items-center py-3 border-b border-light-border dark:border-dark-border last:border-b-0">
                       <div className="format-info text-sm mb-2 sm:mb-0">
-                        <span className="quality font-medium text-text-primary block sm:inline">{format.quality}</span>
-                        <span className="size text-xs text-text-secondary ml-0 sm:ml-2 block sm:inline">(Approx. {format.size})</span>
+                        <span className="quality font-medium text-light-text-primary dark:text-dark-text-primary block sm:inline">{format.note || `${format.ext.toUpperCase()} @ ${format.abr}kbps`}</span>
+                        {format.filesize_str &&
+                         <span className="size text-xs text-light-text-secondary dark:text-dark-text-secondary ml-0 sm:ml-2 block sm:inline">(Approx. {format.filesize_str})</span>
+                        }
                       </div>
                       <button 
                         onClick={() => handleDownloadClick(format)}
-                        className="btn-download bg-success text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-success-hover transition-colors duration-200 flex items-center gap-2 w-full sm:w-auto justify-center">
+                        className="btn-download bg-success text-white py-2 px-4 rounded-md text-sm font-medium hover:bg-success-hover transition-colors duration-200 flex items-center justify-center gap-2 w-full sm:w-auto">
                          <DownloadIcon /> Download
                       </button>
                     </li>
@@ -204,7 +217,7 @@ const YouTubePage = ({ theme, toggleTheme }) => {
         )}
 
       </main>
-      <footer className="w-full max-w-3xl text-center mt-auto py-6 border-t border-border text-text-secondary text-sm">
+      <footer className="w-full max-w-3xl text-center mt-auto py-6 border-t border-light-border dark:border-dark-border text-light-text-secondary dark:text-dark-text-secondary text-sm">
         <p>&copy; {new Date().getFullYear()} TubeFetch & ReelGrab. For demonstration purposes only.</p>
         <p>We are not affiliated with YouTube or Instagram. Download content responsibly.</p>
       </footer>
