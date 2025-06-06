@@ -50,8 +50,8 @@ async def _extract_yt_dlp_info(url: str, ydl_opts: Dict) -> Dict[str, Any]:
     # might pick up for proxies. Unsetting them temporarily ensures that
     # yt-dlp and its underlying libraries do not inadvertently use system/environment proxies.
     proxy_env_vars_to_clear = [
-        'HTTP_PROXY', 'HTTPS_PROXY', 'FTP_PROXY',
-        'http_proxy', 'https_proxy', 'ftp_proxy',
+        'HTTP_PROXY', 'HTTPS_PROXY', 'FTP_PROXY', 'SOCKS_PROXY',
+        'http_proxy', 'https_proxy', 'ftp_proxy', 'socks_proxy',
         'ALL_PROXY', 'NO_PROXY', # Clearing NO_PROXY too, to avoid exceptions to a non-existent proxy setup
         'all_proxy', 'no_proxy'
     ]
