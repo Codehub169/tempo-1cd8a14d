@@ -41,10 +41,10 @@ async def _extract_yt_dlp_info(url: str, ydl_opts: Dict) -> Dict[str, Any]:
     loop = asyncio.get_event_loop()
     
     ydl_opts_processed = ydl_opts.copy()
-    # Ensure 'proxy' is explicitly set to "" if not provided or None by the caller,
-    # to instruct yt-dlp to not use a proxy. 
-    if "proxy" not in ydl_opts_processed or ydl_opts_processed.get("proxy") is None:
-        ydl_opts_processed["proxy"] = ""
+    # Forcefully disable proxy and ignore external yt-dlp config files.
+    # Other options from the original ydl_opts (like 'skip_download') are preserved.
+    ydl_opts_processed["proxy"] = ""
+    ydl_opts_processed["ignoreconfig"] = True
 
     # Environment variables that Python's networking libraries (like urllib3)
     # might pick up for proxies. Unsetting them temporarily ensures that
@@ -95,6 +95,9 @@ def _get_height_from_resolution(resolution_str: Optional[str]) -> int:
     return 0 # Not a valid resolution string or no height found
 
 async def fetch_video_info(url: str) -> Dict[str, Any]:
+    # Note: 'proxy' and 'ignoreconfig' are set here but will be overridden by _extract_yt_dlp_info
+    # to ensure the no-proxy policy is strictly enforced by the utility function.
+    # Keeping them here can serve as a clear indicator of intent at this level too.
     ydl_opts = {
         'noplaylist': True,
         'quiet': True,
@@ -103,8 +106,8 @@ async def fetch_video_info(url: str) -> Dict[str, Any]:
         'forcejson': True,
         'youtube_include_dash_manifest': False,
         'extract_flat': 'discard_in_playlist',
-        'proxy': "", # Explicitly disable proxy for yt-dlp
-        'ignoreconfig': True # Ignore yt-dlp configuration files
+        'proxy': "", # Explicitly disable proxy for yt-dlp (will be enforced by _extract_yt_dlp_info)
+        'ignoreconfig': True # Ignore yt-dlp configuration files (will be enforced by _extract_yt_dlp_info)
     }
     info = await _extract_yt_dlp_info(url, ydl_opts)
 
@@ -171,6 +174,8 @@ async def download_media(url: str, format_id: str, media_type: str, client_filen
     # The client_filename is used by the router for the 'Save As' dialog.
     output_template = os.path.join(temp_dir, '%(title)s.%(ext)s') 
 
+    # Note: 'proxy' and 'ignoreconfig' are set here but will be overridden by _extract_yt_dlp_info
+    # to ensure the no-proxy policy is strictly enforced by the utility function.
     ydl_opts = {
         'format': format_id,
         'outtmpl': output_template,
@@ -179,8 +184,8 @@ async def download_media(url: str, format_id: str, media_type: str, client_filen
         'no_warnings': True,
         'skip_download': False, # False means do download the file
         'extract_flat': 'discard_in_playlist',
-        'proxy': "", # Explicitly disable proxy for yt-dlp
-        'ignoreconfig': True # Ignore yt-dlp configuration files
+        'proxy': "", # Explicitly disable proxy for yt-dlp (will be enforced by _extract_yt_dlp_info)
+        'ignoreconfig': True # Ignore yt-dlp configuration files (will be enforced by _extract_yt_dlp_info)
     }
 
     try:
