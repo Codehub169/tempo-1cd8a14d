@@ -18,11 +18,29 @@ for var_name in PROXY_ENV_VARS_TO_CLEAR:
         _main_logger_for_proxy_clear.info(f"Cleared environment variable at startup: {var_name} (was: {original_value})")
 # --- END PROXY CLEAR ---
 
+# --- BEGIN URLLIB PROXY OVERRIDE ---
+import urllib.request
+
+# Explicitly disable proxies for urllib.request, which yt-dlp might use under the hood.
+# This is an additional layer of defense on top of clearing env vars and yt-dlp's 'proxy' option.
+try:
+    _main_logger_for_proxy_clear.info("Attempting to install a no-proxy opener for urllib.request.")
+    # Create an opener with no proxy handlers (empty dictionary)
+    no_proxy_opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    urllib.request.install_opener(no_proxy_opener)
+    _main_logger_for_proxy_clear.info("Successfully installed no-proxy opener for urllib.request.")
+    # Optional: Log current proxies after override to confirm
+    # current_proxies = urllib.request.getproxies()
+    # _main_logger_for_proxy_clear.info(f"Current urllib.request proxies after override: {current_proxies}")
+except Exception as e_proxy_override:
+    _main_logger_for_proxy_clear.error(f"Failed to install no-proxy opener for urllib.request: {e_proxy_override}", exc_info=True)
+# --- END URLLIB PROXY OVERRIDE ---
+
+from pathlib import Path # Standard library import moved slightly up for grouping
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
-# import logging # logging is already imported above
 
 from .routers import download
 
@@ -87,8 +105,10 @@ async def health_check():
     return {"status": "ok", "message": "API is responsive"}
 
 # Example of how to configure logging if not done globally
+# (Usually Uvicorn handles logging setup when running the app)
 # import uvicorn
 # if __name__ == "__main__":
-#     logging.basicConfig(level=logging.INFO)
+#     # Ensure logging is configured to see startup messages if running this file directly
+#     logging.basicConfig(level=logging.INFO, format='%(levelname)s:     %(name)s - %(message)s')
 #     logger.info("Starting Uvicorn server for main:app")
 #     uvicorn.run(app, host="0.0.0.0", port=9000)
