@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1A1A1A" /> <!-- Default dark theme color -->
+    <meta
+      name="description"
+      content="Download YouTube videos and audio, and Instagram Reels quickly and easily."
+    />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <title>TubeFetch & ReelGrab</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Slab:wght@400;700&display=swap" rel="stylesheet">
+
+    <script>
+      (function() {
+        try {
+          const storedTheme = localStorage.getItem('theme');
+          const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          let newThemeIsDark = false;
+
+          if (storedTheme === 'dark') {
+            newThemeIsDark = true;
+          } else if (storedTheme === 'light') {
+            newThemeIsDark = false;
+          } else if (prefersDark) {
+            newThemeIsDark = true;
+          } else {
+            newThemeIsDark = false;
+          }
+
+          if (newThemeIsDark) {
+            document.documentElement.classList.add('dark');
+            document.querySelector('meta[name="theme-color"]').setAttribute('content', '#1A1A1A');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.querySelector('meta[name="theme-color"]').setAttribute('content', '#F8F9FA');
+          }
+        } catch (e) {
+          console.error("Error applying initial theme:", e);
+          document.documentElement.classList.add('dark'); // Fallback to dark
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#1A1A1A');
+        }
+      })();
+    </script>
+  </head>
+  <body class="bg-light-bg dark:bg-dark-bg text-light-text-primary dark:text-dark-text-primary font-primary transition-colors duration-300 antialiased">
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+  </body>
+</html>
