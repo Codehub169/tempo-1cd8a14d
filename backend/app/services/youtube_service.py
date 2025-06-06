@@ -77,11 +77,11 @@ async def _extract_yt_dlp_info(url: str, ydl_opts: Dict) -> Dict[str, Any]:
             raise ValueError("This video is private and cannot be accessed.")
         if "Login required" in str(e).lower() or "authentication required" in str(e).lower():
              raise ValueError("This content requires login or authentication, which is not supported.")
-        # Generic fallback for DownloadError
-        raise ValueError(f"Could not process URL ({url}). The content may be region-restricted, private, unavailable, or a network issue occurred.")
+        # Generic fallback for DownloadError, now including the URL in the message.
+        raise ValueError(f"Could not process URL '{url}'. The content may be region-restricted, private, unavailable, or a network issue occurred: {e}")
     except Exception as e:
         logger.error(f"Unexpected error with yt-dlp for {url} with options {ydl_opts_processed}: {str(e)}", exc_info=True)
-        raise ValueError(f"An unexpected error occurred while processing URL ({url}).")
+        raise ValueError(f"Unexpected error while processing URL '{url}': {e}")
 
 def _get_height_from_resolution(resolution_str: Optional[str]) -> int:
     """Safely extracts height from a resolution string like '1920x1080'."""
@@ -228,5 +228,5 @@ async def download_media(url: str, format_id: str, media_type: str, client_filen
         logger.error(f"Unexpected error during media download for {url}, format {format_id}: {str(e)}", exc_info=True)
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir, ignore_errors=True)
-        # Wrap unexpected errors in a generic ValueError for the client
-        raise ValueError(f"An unexpected error occurred during download for {url}.")
+        # Wrap unexpected errors in a generic ValueError for the client, including the original exception and URL
+        raise ValueError(f"Unexpected error while processing URL '{url}' during download: {e}")
